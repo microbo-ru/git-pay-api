@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
-from flask import jsonify
+from flask import jsonify, request
+from requests import get
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -34,3 +35,11 @@ def get_users():
 @app.route("/contracts")
 def get_contracts():
     return jsonify(contracts)
+
+
+@app.route("/pulls", methods=['POST'])
+def get_prs():
+    author = request.json['author']
+    res = get(
+        f"https://api.github.com/search/issues?q=is:pr+author:{author}+is:open").text
+    return jsonify(res)

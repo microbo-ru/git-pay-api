@@ -43,3 +43,11 @@ def get_prs():
     res = get(
         f"https://api.github.com/search/issues?q=is:pr+author:{author}+is:open").text
     return jsonify(res)
+
+
+@app.route("/repos", methods=['POST'])
+def get_repos():
+    username = request.json['username']
+    res = get(
+        f"https://api.github.com/users/{username}/repos").text
+    return jsonify(res)

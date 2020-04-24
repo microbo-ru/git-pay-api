@@ -27,6 +27,10 @@ users = {
         "profile_link": "https://github.com/otzhora",
         "marked_repos": [{"name": "image annotator", "url": "https://github.com/otzhora/face_annotator"},
                          {"name": "HackUniversity hac", "url": "https://github.com/otzhora/HackUniversity"}]
+    },
+    "hoopoe": {
+        "profile_link": "https://github.com/hoopoe",
+        "marked_repos": [{"name": "gpugpeg", "url": "https://github.com/hoopoe/gpujpeg"}]
     }
 }
 

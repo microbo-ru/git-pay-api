@@ -3,6 +3,8 @@ from flask_cors import CORS
 from flask import jsonify, request
 from requests import get
 
+import uuid
+
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
@@ -70,3 +72,19 @@ def get_marked_repos():
         res.append(buf)
 
     return jsonify(res)
+
+
+@app.route("/mark_repo", methods=['POST'])
+def mark_repo():
+    username = request.json['username']
+    repo_name = request.json['repo_name']
+    repo_url = request.json['repo_url']
+
+    users[username]['marked_repos'].append(
+        {"name": repo_name, "url": repo_url})
+
+    contracts[str(uuid.uuid4())] = {
+        "name": username, "repos": {"name": repo_name, "url": repo_url}
+    }
+
+    return "OK"

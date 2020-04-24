@@ -22,7 +22,9 @@ contracts = {
 
 users = {
     "otzhora": {
-        "profile_link": "https://github.com/otzhora"
+        "profile_link": "https://github.com/otzhora",
+        "marked_repos": [{"name": "image annotator", "url": "https://github.com/otzhora/face_annotator"},
+                         {"name": "HackUniversity hac", "url": "https://github.com/otzhora/HackUniversity"}]
     }
 }
 
@@ -50,4 +52,21 @@ def get_repos():
     username = request.json['username']
     res = get(
         f"https://api.github.com/users/{username}/repos").text
+    return jsonify(res)
+
+
+@app.route("/marked_repos", methods=['POST'])
+def get_marked_repos():
+    username = request.json['username']
+
+    if not username in users:
+        return jsonify([])
+    res = []
+    for repo in users[username]['marked_repos']:
+
+        reponame = repo['url'][repo['url'].rfind("/")+1:]
+        buf = get(
+            f"https://api.github.com/repos/{username}/{reponame}").text
+        res.append(buf)
+
     return jsonify(res)

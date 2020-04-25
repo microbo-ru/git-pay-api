@@ -11,13 +11,13 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 contracts = {
     "123": {
         "name": "otzhora",
-        "repos": [{"name": "image annotator", "url": "https://github.com/otzhora/face_annotator", "description": null},
-                  {"name": "HackUniversity hac", "url": "https://github.com/otzhora/HackUniversity", "description": null, "premium": true}]
+        "repos": [{"name": "image annotator", "url": "https://github.com/otzhora/face_annotator", "description": NULL},
+                  {"name": "HackUniversity hac", "url": "https://github.com/otzhora/HackUniversity", "description": NULL, "premium": True}]
     },
     "34241": {
         "name": "fastai",
-        "repos": [{"name": "fastai library", "url": "https://github.com/fastai/fastai", "description": "The fastai deep learning library, plus lessons and tutorials", "verified": true},
-                  {"name": "fastai course", "url": "https://github.com/fastai/course-v4", "description": "Pre-release of v4 of course.fast.ai", "verified": true, "premium": true}]
+        "repos": [{"name": "fastai library", "url": "https://github.com/fastai/fastai", "description": "The fastai deep learning library, plus lessons and tutorials", "verified": True},
+                  {"name": "fastai course", "url": "https://github.com/fastai/course-v4", "description": "Pre-release of v4 of course.fast.ai", "verified": True, "premium": True}]
     }
 }
 

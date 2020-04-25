@@ -26,13 +26,35 @@ users = {
     "otzhora": {
         "profile_link": "https://github.com/otzhora",
         "marked_repos": [{"name": "image annotator", "url": "https://github.com/otzhora/face_annotator"},
-                         {"name": "HackUniversity hac", "url": "https://github.com/otzhora/HackUniversity"}]
+                         {"name": "HackUniversity hac", "url": "https://github.com/otzhora/HackUniversity"}],
+        "status": "user"
     },
     "hoopoe": {
         "profile_link": "https://github.com/hoopoe",
-        "marked_repos": [{"name": "gpugpeg", "url": "https://github.com/hoopoe/gpujpeg"}]
+        "marked_repos": [{"name": "gpugpeg", "url": "https://github.com/hoopoe/gpujpeg"}],
+        "status": "empl"
     }
 }
+
+
+pulls = []
+
+
+@app.route("/pulls")
+def get_pulls():
+    return jsonify(pulls)
+
+
+@app.route("/new_pull", methods=["POST"])
+def new_pull():
+    print(request.json)
+    html_url = request.json["html_url"]
+    taskDescription = request.json["taskDescription"]
+    price = request.json["price"]
+
+    pulls.append(
+        {"html_url": html_url, "taskDescription": taskDescription, "price": price})
+    return "OK"
 
 
 @app.route("/users")

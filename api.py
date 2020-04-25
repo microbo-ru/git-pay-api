@@ -77,6 +77,29 @@ def get_marked_pulls():
     return jsonify(pulls)
 
 
+@app.route("/get_marked_pulls", methods=["GET"])
+def get_all_marked_pulls():
+    all_pulls = []
+    for username in users:
+        pulls = []
+        for pull in users[username]["marked_pulls"]:
+            pulls.append(pull)
+
+            html_url = pull["html_url"]
+            username = html_url[find_nth(
+                html_url, "/", 3)+1:find_nth(html_url, "/", 4)]
+            reponame = html_url[find_nth(
+                html_url, "/", 4)+1:find_nth(html_url, "/", 5)]
+            pull_number = html_url[find_nth(
+                html_url, "/", 6) + 1:]
+
+            res = get(
+                f"https://api.github.com/repos/{username}/{reponame}/pulls/{pull_number}")
+            pulls[-1]["extra"] = res.text
+        all_pulls.extend(pulls)
+    return jsonify(all_pulls)
+
+
 @app.route("/new_pull", methods=["POST"])
 def new_pull():
     html_url = request.json["html_url"]

@@ -27,12 +27,14 @@ users = {
         "profile_link": "https://github.com/otzhora",
         "marked_repos": [{"name": "image annotator", "url": "https://github.com/otzhora/face_annotator"},
                          {"name": "HackUniversity hac", "url": "https://github.com/otzhora/HackUniversity"}],
-        "status": "user"
+        "status": "user",
+        "marked_pulls": []
     },
     "hoopoe": {
         "profile_link": "https://github.com/hoopoe",
         "marked_repos": [{"name": "gpugpeg", "url": "https://github.com/hoopoe/gpujpeg"}],
-        "status": "empl"
+        "status": "empl",
+        "marked_pulls": []
     }
 }
 
@@ -45,15 +47,47 @@ def get_pulls():
     return jsonify(pulls)
 
 
+def find_nth(haystack, needle, n):
+    start = haystack.find(needle)
+    while start >= 0 and n > 1:
+        start = haystack.find(needle, start+len(needle))
+        n -= 1
+    return start
+
+
+@app.route("/get_marked_pulls", methods=["POST"])
+def get_marked_pulls():
+    username = request.json["username"]
+
+    pulls = []
+    for pull in users[username]["marked_pulls"]:
+        pulls.append(pull)
+
+        html_url = pull["html_url"]
+        username = html_url[find_nth(
+            html_url, "/", 3)+1:find_nth(html_url, "/", 4)]
+        reponame = html_url[find_nth(
+            html_url, "/", 4)+1:find_nth(html_url, "/", 5)]
+        pull_number = html_url[find_nth(
+            html_url, "/", 6) + 1:]
+
+        res = get(
+            f"https://api.github.com/repos/{username}/{reponame}/pulls/{pull_number}")
+        pulls[-1]["extra"] = res.text
+    return jsonify(pulls)
+
+
 @app.route("/new_pull", methods=["POST"])
 def new_pull():
-    print(request.json)
     html_url = request.json["html_url"]
     taskDescription = request.json["taskDescription"]
     price = request.json["price"]
+    username = request.json["username"]
 
     pulls.append(
-        {"html_url": html_url, "taskDescription": taskDescription, "price": price})
+        {"html_url": html_url, "taskDescription": taskDescription, "price": price, "username": username})
+    users[username]["marked_pulls"].append(
+        {"html_url": html_url, "taskDescription": taskDescription, "price": price, "username": username})
     return "OK"
 
 

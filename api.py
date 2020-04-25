@@ -11,8 +11,8 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 contracts = {
     "123": {
         "name": "otzhora",
-        "repos": [{"name": "image annotator", "url": "https://github.com/otzhora/face_annotator", "description": NULL},
-                  {"name": "HackUniversity hac", "url": "https://github.com/otzhora/HackUniversity", "description": NULL, "premium": True}]
+        "repos": [{"name": "image annotator", "url": "https://github.com/otzhora/face_annotator", "description": ""},
+                  {"name": "HackUniversity hac", "url": "https://github.com/otzhora/HackUniversity", "description": "", "premium": True}]
     },
     "34241": {
         "name": "fastai",

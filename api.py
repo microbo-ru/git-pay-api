@@ -1,12 +1,23 @@
-from flask import Flask
+from flask import Flask, redirect, url_for
 from flask_cors import CORS
 from flask import jsonify, request
+from flask_dance.contrib.github import make_github_blueprint, github
+
+
 from requests import get
+import os
 
 import uuid
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersekrit")
+app.config["GITHUB_OAUTH_CLIENT_ID"] = os.environ.get("GITHUB_OAUTH_CLIENT_ID")
+app.config["GITHUB_OAUTH_CLIENT_SECRET"] = os.environ.get(
+    "GITHUB_OAUTH_CLIENT_SECRET")
 CORS(app, resources={r"/*": {"origins": "*"}})
+
+github_bp = make_github_blueprint()
+app.register_blueprint(github_bp, url_prefix="/login", redirect_to="/")
 
 contracts = {
     "123": {
@@ -40,6 +51,19 @@ users = {
 
 
 pulls = []
+
+
+@app.route("/github_login")
+def github_login():
+    if not github.authorized:
+        return redirect(url_for("github.login"))
+
+    resp = github.get("/user")
+
+    if not resp.ok:
+        return "Somthing bad happend"
+
+    return f"your login is {resp.json()['login']}"
 
 
 @app.route("/pulls")

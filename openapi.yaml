@@ -1,0 +1,101 @@
+openapi: 3.0.0
+
+info:
+  title: "Git-pay API"
+  description: >
+    The api for the Git-Pay project
+  version: "1.0.0"
+
+servers:
+  - url: "/api/v1"
+    description: "An entry point"
+
+paths:
+
+  /pulls:
+    get:
+      summary: "Returns all pull requests"
+      description: "Returns all sites"
+      operationId: "getPullRequests"
+      responses:
+        200:
+          description: "Successful response of pull-requests"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PullRequestInfo"
+        500:
+          $ref: "#/components/responses/ErrorResponse"
+
+    post:
+      summary: "Creates new entry in registered pull-requests"
+      description: "Create new pull-request or update existing one"
+      operationId: "addPullRequest"
+      requestBody:
+        description: "Pull-request data"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PullRequestInfo"
+      responses:
+        200:
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PullRequestInfo"
+        400:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /pulls/{pullrequestId}:
+    get:
+      summary: "Returns single PR information"
+      description: "Returns PR details by it's id"
+      operationId: "getPullRequestById"
+      parameters:
+        - name: "pullrequestId"
+          in: path
+          description: "ID of a PR"
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PullRequestInfo"
+        500:
+          $ref: "#/components/responses/ErrorResponse"
+
+components:
+
+  responses:
+    ErrorResponse:
+      description: "Some exception occuried"
+      content:
+        applciation/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+
+  schemas:
+    PullRequestInfo:
+      type: "object"
+      properties:
+        id:
+          type: string
+        pull_number:
+          type: integer
+        username:
+          type: string
+        reponame:
+          type: string
+        html_url:
+          type: string

@@ -21,3 +21,12 @@ To generate API it's necessary to perform following steps:
 ```
 > npx openapi-generator generate -i openapi.yaml -g typescript-axios
 ```
+
+GET: /user -> return user info
+GET: /users/{username} -> return for the specidic user  
+POST: /mark_pull -> by owner
+POST: /assign_pull -> by user/dev
+POST: /change_user_status
+GET: /pulls -> return all existing pulls
+GET: /pulls/{pullId} -> return by specific pull
+GET: /user_pulls -> owner's pulls

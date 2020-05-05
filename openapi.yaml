@@ -74,6 +74,9 @@ paths:
 
 components:
 
+  securitySchemes:
+
+
   responses:
     ErrorResponse:
       description: "Some exception occuried"

@@ -19,38 +19,38 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 github_bp = make_github_blueprint()
 app.register_blueprint(github_bp, url_prefix="/login", redirect_to="/")
 
-contracts = {
-    "123": {
-        "name": "otzhora",
-        "repos": [{"name": "image annotator", "url": "https://github.com/otzhora/face_annotator", "description": ""},
-                  {"name": "HackUniversity hac", "url": "https://github.com/otzhora/HackUniversity", "description": "", "premium": True}]
-    },
-    "34241": {
-        "name": "fastai",
-        "repos": [{"name": "fastai library", "url": "https://github.com/fastai/fastai", "description": "The fastai deep learning library, plus lessons and tutorials", "verified": True},
-                  {"name": "fastai course", "url": "https://github.com/fastai/course-v4", "description": "Pre-release of v4 of course.fast.ai", "verified": True, "premium": True}]
-    }
-}
+users = {}
+all_pulls = []
 
 
-users = {
-    "otzhora": {
-        "profile_link": "https://github.com/otzhora",
-        "marked_repos": [{"name": "image annotator", "url": "https://github.com/otzhora/face_annotator"},
-                         {"name": "HackUniversity hac", "url": "https://github.com/otzhora/HackUniversity"}],
-        "status": "user",
-        "marked_pulls": []
-    },
-    "hoopoe": {
-        "profile_link": "https://github.com/hoopoe",
-        "marked_repos": [{"name": "gpugpeg", "url": "https://github.com/hoopoe/gpujpeg"}],
-        "status": "empl",
-        "marked_pulls": []
-    }
-}
+def find_user_by_username(username):
+    # TODO change this to db request
+    found_user = False
+    found_user_id = 0
+    for id in users:
+        if users[id]["username"] == username:
+            found_user_id = id
+            found_user = True
+            break
+    return (found_user, found_user_id)
 
 
-pulls = []
+def get_user_info_from_github(username=None):
+    if username:
+        resp = github.get(f"/users/{username}")
+    else:
+        resp = github.get(f"/user")
+
+    if not resp.ok:
+        return False, False, 0
+
+    user_data = resp.json()
+    username = user_data["login"]
+    avatar_url = user_data["avatar_url"]
+    user = {"username": username, "avatar_url": avatar_url}
+
+    found_user, found_user_id = find_user_by_username(username)
+    return True, found_user, found_user_id, user
 
 
 @app.route("/github_login")
@@ -58,140 +58,183 @@ def github_login():
     if not github.authorized:
         return redirect(url_for("github.login"))
 
-    resp = github.get("/user")
+    ok, found_user, found_user_id, user = get_user_info_from_github()
+    if not ok:
+        return "There is problem with github"
 
-    if not resp.ok:
-        return "Somthing bad happend"
+    username = user["username"]
+    avatar_url = user["avatar_url"]
 
-    return f"your login is {resp.json()['login']}"
+    # TODO change this to insertion to db
+    if not found_user:
+        id = str(uuid.uuid4())
+        users[id] = {
+            "username": username,
+            "avatar_url": avatar_url,
+            "user_status": "user",  # this would be default but i think we should change this
+            "assigned_pulls": []
+        }
+        return jsonify({"status": "new_user", "user": users[id]}
+                       )
+    # TODO change this to updating avatar_url in db
+    if found_user:
+        users[found_user_id]["avatar_url"] = avatar_url  # updating avatar url
+        return jsonify({"status": "found_user", "user": users[found_user_id]})
 
-
-@app.route("/pulls")
-def get_pulls():
-    return jsonify(pulls)
-
-
-def find_nth(haystack, needle, n):
-    start = haystack.find(needle)
-    while start >= 0 and n > 1:
-        start = haystack.find(needle, start+len(needle))
-        n -= 1
-    return start
-
-
-@app.route("/get_marked_pulls", methods=["POST"])
-def get_marked_pulls():
-    username = request.json["username"]
-
-    pulls = []
-    for pull in users[username]["marked_pulls"]:
-        pulls.append(pull)
-
-        html_url = pull["html_url"]
-        username = html_url[find_nth(
-            html_url, "/", 3)+1:find_nth(html_url, "/", 4)]
-        reponame = html_url[find_nth(
-            html_url, "/", 4)+1:find_nth(html_url, "/", 5)]
-        pull_number = html_url[find_nth(
-            html_url, "/", 6) + 1:]
-
-        res = get(
-            f"https://api.github.com/repos/{username}/{reponame}/pulls/{pull_number}")
-        pulls[-1]["extra"] = res.text
-    return jsonify(pulls)
+    return jsonify({"status": "somthing went wrong"})
 
 
-@app.route("/get_marked_pulls", methods=["GET"])
-def get_all_marked_pulls():
-    all_pulls = []
-    for username in users:
-        pulls = []
-        for pull in users[username]["marked_pulls"]:
-            pulls.append(pull)
+@app.route("/user")
+def user():
+    if not github.authorized:
+        return redirect(url_for("github.login"))
 
-            html_url = pull["html_url"]
-            username = html_url[find_nth(
-                html_url, "/", 3)+1:find_nth(html_url, "/", 4)]
-            reponame = html_url[find_nth(
-                html_url, "/", 4)+1:find_nth(html_url, "/", 5)]
-            pull_number = html_url[find_nth(
-                html_url, "/", 6) + 1:]
+    ok, found_user, found_user_id, user = get_user_info_from_github()
+    username = user["username"]
+    if not ok:
+        return "There is problem with github"
 
-            res = get(
-                f"https://api.github.com/repos/{username}/{reponame}/pulls/{pull_number}")
-            pulls[-1]["extra"] = res.text
-        all_pulls.extend(pulls)
-    return jsonify(all_pulls)
+    if not found_user:
+        return f"There is no user in db with login: {username}"
+
+    return jsonify({"status": "found_user", "user": users[found_user_id], "user_id": found_user_id})
 
 
-@app.route("/new_pull", methods=["POST"])
-def new_pull():
-    html_url = request.json["html_url"]
-    taskDescription = request.json["taskDescription"]
-    price = request.json["price"]
-    username = request.json["username"]
+@app.route("/users/<username>")
+def user_by_username(username):
+    if not github.authorized:
+        return redirect(url_for("github.login"))
 
-    pulls.append(
-        {"html_url": html_url, "taskDescription": taskDescription, "price": price, "username": username})
-    users[username]["marked_pulls"].append(
-        {"html_url": html_url, "taskDescription": taskDescription, "price": price, "username": username})
-    return "OK"
+    ok, found_user, found_user_id, _ = get_user_info_from_github(username)
+    if not ok:
+        return "There is problem with github"
 
+    if not found_user:
+        return f"There is no user in db with login: {username}"
 
-@app.route("/users")
-def get_users():
-    return jsonify(users)
+    return jsonify({"status": "found_user", "user": users[found_user_id], "user_id": found_user_id})
 
 
-@app.route("/contracts")
-def get_contracts():
-    return jsonify(contracts)
+@app.route("/change_user_status")
+def change_user_status():
+    if not github.authorized:
+        return redirect(url_for("github.login"))
+
+    ok, found_user, found_user_id, user = get_user_info_from_github()
+    username = user["username"]
+    if not ok:
+        return "There is problem with github"
+
+    if not found_user:
+        return f"There is no user in db with login: {username}"
+
+    user_status = users[found_user_id]["user_status"]
+
+    if user_status == "empl":
+        users[found_user_id]["user_status"] = "user"
+        del users[found_user_id]["marked_pulls"]
+        users[found_user_id]["assigned_pulls"] = []
+    else:
+        users[found_user_id]["user_status"] = "empl"
+        del users[found_user_id]["assigned_pulls"]
+        users[found_user_id]["marked_pulls"] = []
+
+    return f"You changed your status to {users[found_user_id]['user_status']}"
 
 
-@app.route("/pulls", methods=['POST'])
-def get_prs():
-    author = request.json['author']
-    res = get(
-        f"https://api.github.com/search/issues?q=is:pr+author:{author}+is:open").text
-    return jsonify(res)
+@app.route("/mark_pull", methods=["POST"])
+def mark_pull():
+    if not github.authorized:
+        return redirect(url_for("github.login"))
 
+    json = request.json
+    pull_url = json["pull_url"]
+    descr = json["descr"]
+    price = json["price"]
+    markee_id = json["markee_id"]
 
-@app.route("/repos", methods=['POST'])
-def get_repos():
-    username = request.json['username']
-    res = get(
-        f"https://api.github.com/users/{username}/repos").text
-    return jsonify(res)
+    # TODO change to db
+    if not markee_id in users:
+        return "You are not in our db"
 
-
-@app.route("/marked_repos", methods=['POST'])
-def get_marked_repos():
-    username = request.json['username']
-
-    if not username in users:
-        return jsonify([])
-    res = []
-    for repo in users[username]['marked_repos']:
-
-        reponame = repo['url'][repo['url'].rfind("/")+1:]
-        buf = get(
-            f"https://api.github.com/repos/{username}/{reponame}").text
-        res.append(buf)
-
-    return jsonify(res)
-
-
-@app.route("/mark_repo", methods=['POST'])
-def mark_repo():
-    username = request.json['username']
-    repo_name = request.json['repo_name']
-    repo_url = request.json['repo_url']
-
-    users[username]['marked_repos'].append(
-        {"name": repo_name, "url": repo_url})
-
-    contracts[str(uuid.uuid4())] = {
-        "name": username, "repos": {"name": repo_name, "url": repo_url}
+    pull = {
+        "url": pull_url,
+        "markee_id": markee_id,
+        "price": price,
+        "descr": descr
     }
+    all_pulls.append({"pull": pull, "assigned_users": []})
+    users[markee_id]["marked_pulls"].append(pull)
 
-    return "OK"
+    return "Added new pull to list"
+
+
+@app.route("/assign_pull", methods=["POST"])
+def assign_pull():
+    if not github.authorized:
+        return redirect(url_for("github.login"))
+
+    json = request.json
+    pull_url = json["pull_url"]
+    assignee_id = json["assignee_id"]
+
+    if not assignee_id in users or users[assignee_id]["user_status"] == "empl":
+        return f"There is no user with id {assignee_id} or user with this id is empl"
+
+    # TODO db
+    found_pull = False
+    found_pull_idx = -1
+    for idx, pull in enumerate(all_pulls):
+        if pull["pull"]["url"] == pull_url:
+            found_pull = True
+            found_pull_idx = idx
+            break
+
+    if not found_pull:
+        return f"There is no pull with {pull_url}"
+
+    all_pulls[found_pull_idx]["assigned_users"].append(assignee_id)
+    users[assignee_id]["assigned_pulls"].append(
+        all_pulls[found_pull_idx]["pull"])
+    print(all_pulls)
+    print(users)
+    return "You are assigned to this pull"
+
+
+@app.route("/pulls", methods=["POST", "GET"])
+def get_pulls():
+    if not github.authorized:
+        return redirect(url_for("github.login"))
+
+    if request.method == "POST":
+        json = request.json
+        pull_url = json["pull_url"]
+
+        # TODO db
+        for idx, pull in enumerate(all_pulls):
+            if pull["pull"]["url"] == pull_url:
+                return jsonify(pull["pull"])
+
+        return f"There is no pull with url {pull_url}"
+
+    if request.method == "GET":
+        return jsonify(all_pulls)
+
+
+@app.route("/user_pulls", methods=["POST"])
+def get_user_pulls_from_github():
+    if not github.authorized:
+        return redirect(url_for("github.login"))
+
+    json = request.json
+    username = json["username"]
+
+    resp = github.get(f"/search/issues?q=is:pr+author:{username}+is:open")
+    if not resp.ok:
+        return f"There is somthing wrong with github or username: {username} is invalid"
+
+    json = resp.json()
+    pulls = []
+    for item in json["items"]:
+        pulls.append({"url": item["url"], "title": item["title"]})
+    return jsonify(pulls)
